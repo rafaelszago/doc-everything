@@ -3,9 +3,14 @@
 # Stop hook: keep per-feature docs in sync with code changes.
 #
 # If source under SRC_GLOB has uncommitted working-tree changes but nothing
-# under DOCS_PATH does, block the stop ONCE with a reminder pointing at the
-# document-feature-* skills. The stop_hook_active guard prevents an infinite
-# block loop — after the first block, the next stop is allowed.
+# under DOCS_PATH does, nudge ONCE to document the feature, pointing at the
+# document-feature-* skills (Claude Code) / rules (Cursor). The nudge never
+# repeats within a turn.
+#
+# Runs in two editors, auto-detected from the stop payload on stdin:
+#   • Claude Code — guard on `stop_hook_active`; emit {"decision":"block", ...}.
+#   • Cursor (>=1.7) — guard on `loop_count` (+ only when status=="completed");
+#     emit {"followup_message": ...} to re-prompt the agent.
 #
 # NB: this inspects the whole working tree (git status), not only what changed
 # in the current session — a branch with pre-existing pending source changes
@@ -13,8 +18,9 @@
 #
 # Language/framework-agnostic. Every path pattern below can be overridden per
 # project, in priority order:
-#   1. A config file at <repo>/.claude/doc-everything.json (keys: srcGlob,
-#      srcExclude, docsPath, reason). Missing keys fall back to defaults.
+#   1. A config file at <repo>/.cursor/doc-everything.json or
+#      <repo>/.claude/doc-everything.json (keys: srcGlob, srcExclude, docsPath,
+#      reason). Missing keys fall back to defaults.
 #   2. Environment variables: DOC_EVERYTHING_SRC_GLOB, DOC_EVERYTHING_SRC_EXCLUDE,
 #      DOC_EVERYTHING_DOCS_PATH, DOC_EVERYTHING_REASON.
 #   3. The built-in defaults below.
@@ -40,13 +46,15 @@ DEF_SRC_EXCLUDE='(\.(test|spec)\.|_test\.|_spec\.|\.stories\.|/__tests__/|/__moc
 # Feature documentation directory (trailing slash).
 DEF_DOCS_PATH='docs/features/'
 
-# What Claude sees when code changed but docs didn't. {DOCS_PATH} is substituted.
+# What the agent sees when code changed but docs didn't. {DOCS_PATH} is
+# substituted. Editor-neutral wording — document-feature-* is a skill in Claude
+# Code and a rule in Cursor, but the name is the same in both.
 # Written as one printf so the message has no stray line-continuation backslashes.
 DEF_REASON="$(printf '%s ' \
   'Source changed but nothing under {DOCS_PATH} did.' \
   'Document the feature you implemented/changed in THIS task: update' \
-  '{DOCS_PATH}<feature>/technical.md (use the document-feature-technical skill),' \
-  '{DOCS_PATH}<feature>/product.md (use the document-feature-product skill), and' \
+  '{DOCS_PATH}<feature>/technical.md (see document-feature-technical),' \
+  '{DOCS_PATH}<feature>/product.md (see document-feature-product), and' \
   'the {DOCS_PATH}README.md index. If this change genuinely needs no docs (pure' \
   'refactor, tests, formatting, config/dep bump, scaffolding only), say why in one' \
   'line and stop again.')"
@@ -59,20 +67,44 @@ command -v jq >/dev/null 2>&1 || exit 0
 
 input="$(cat)"
 
-# Already blocked once this stop-sequence → let the turn end.
-if [ "$(printf '%s' "$input" | jq -r '.stop_hook_active // false' 2>/dev/null)" = "true" ]; then
-  exit 0
+# Detect the calling editor from the stop-payload shape: Cursor's `stop` hook
+# sends {"status","loop_count"}; Claude Code's sends {"stop_hook_active",...}.
+if [ "$(printf '%s' "$input" | jq -r 'has("loop_count")' 2>/dev/null)" = "true" ]; then
+  MODE="cursor"
+else
+  MODE="claude"
+fi
+
+# Nudge at most once per turn; never re-trigger.
+if [ "$MODE" = "cursor" ]; then
+  # Only act on a normally-completed turn — not on an abort or error.
+  [ "$(printf '%s' "$input" | jq -r '.status // "completed"')" = "completed" ] || exit 0
+  # loop_count > 0 → we already submitted a follow-up this turn.
+  [ "$(printf '%s' "$input" | jq -r '(.loop_count // 0) > 0' 2>/dev/null)" = "true" ] && exit 0
+else
+  # stop_hook_active → we already blocked once this stop-sequence.
+  [ "$(printf '%s' "$input" | jq -r '.stop_hook_active // false' 2>/dev/null)" = "true" ] && exit 0
 fi
 
 # Locate the repo; bail quietly if we're not in a git checkout.
 root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
 cd "$root" || exit 0
 
-# Load optional per-project config file.
-cfg="$root/.claude/doc-everything.json"
+# Load optional per-project config: first existing file wins. Prefer the current
+# editor's directory, then fall back to the other.
+cfg=""
+if [ "$MODE" = "cursor" ]; then
+  for c in "$root/.cursor/doc-everything.json" "$root/.claude/doc-everything.json"; do
+    [ -f "$c" ] && { cfg="$c"; break; }
+  done
+else
+  for c in "$root/.claude/doc-everything.json" "$root/.cursor/doc-everything.json"; do
+    [ -f "$c" ] && { cfg="$c"; break; }
+  done
+fi
 cfg_get() {
-  # $1 = json key; echoes value or empty if file/key absent.
-  [ -f "$cfg" ] || return 0
+  # $1 = json key; echoes value or empty if no config file / key absent.
+  [ -n "$cfg" ] || return 0
   jq -r --arg k "$1" '.[$k] // empty' "$cfg" 2>/dev/null
 }
 
@@ -99,7 +131,13 @@ code_changed="$(printf '%s\n' "$changes" \
 docs_changed="$(printf '%s\n' "$changes" | grep -E "$DOCS_PATH" || true)"
 
 if [ -n "$code_changed" ] && [ -z "$docs_changed" ]; then
-  jq -n --arg r "$REASON" '{decision: "block", reason: $r}'
+  if [ "$MODE" = "cursor" ]; then
+    # Cursor: auto-submit a follow-up user message to keep the agent iterating.
+    jq -n --arg m "$REASON" '{followup_message: $m}'
+  else
+    # Claude Code: block this stop once and feed the reason back to Claude.
+    jq -n --arg r "$REASON" '{decision: "block", reason: $r}'
+  fi
   exit 0
 fi
 

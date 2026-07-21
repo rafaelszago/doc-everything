@@ -13,7 +13,7 @@ skills give you canonical templates for the two views of a feature.
 | `document-feature-product` | skill | Template for the **user-facing view** → `docs/features/<feature>/product.md`, and maintains the `docs/features/README.md` index. |
 | `doc-everything-init` | skill | One-time per-repo setup: scaffolds the docs dir + index and writes a config only if the defaults don't fit. |
 
-## Install
+## Install (Claude Code)
 
 Add the marketplace from GitHub, then install the plugin — via the CLI:
 
@@ -41,6 +41,43 @@ claude plugin install doc-everything --scope local     # only your local checkou
 Manage it later with `claude plugin update | disable | enable | uninstall
 doc-everything`. If another installed plugin shares the name, use the fully
 qualified id `doc-everything@doc-everything`.
+
+## Install (Cursor)
+
+The same behavior runs in [Cursor](https://cursor.com) 1.7+ through its native
+hooks and rules — `hooks/docs-sync.sh` is shared and auto-detects which editor
+called it. There's no plugin registry in Cursor, so you wire up two things per
+repo (or globally):
+
+**1. The stop hook.** Copy `hooks/docs-sync.sh` into your repo (keep it
+executable: `chmod +x`) and add `.cursor/hooks.json`:
+
+```json
+{
+  "version": 1,
+  "hooks": {
+    "stop": [
+      { "command": "./hooks/docs-sync.sh" }
+    ]
+  }
+}
+```
+
+In Cursor the script reads the `stop` payload's `loop_count` and returns
+`{"followup_message": …}` to re-prompt the agent; in Claude Code it reads
+`stop_hook_active` and returns `{"decision":"block"}`. Same logic either way — it
+nudges once per turn, and (in Cursor) only when the turn completed normally. To
+enable it for every project, put the same `stop` entry in `~/.cursor/hooks.json`
+with an absolute path to the script.
+
+**2. The templates.** The `document-feature-*` skills ship as Cursor rules under
+[`.cursor/rules/`](.cursor/rules). Cursor auto-applies one when its `description`
+matches the task, or invoke it by hand with `@document-feature-technical` — the
+same role the skills play in Claude Code. The `doc-everything-init` rule walks
+through this setup.
+
+Config is shared too: the hook reads `.cursor/doc-everything.json` or
+`.claude/doc-everything.json`, or the `DOC_EVERYTHING_*` env vars (see below).
 
 ## Convention
 

@@ -1,0 +1,90 @@
+---
+description: Set up doc-everything in a Cursor project — install the docs-sync stop hook, scaffold the docs/features/ directory with an index, and (only if the defaults don't fit) write a doc-everything.json config so the hook watches the right paths. Apply once per repo when adopting doc-everything in Cursor, or when the stop hook is firing on the wrong files / not firing at all.
+alwaysApply: false
+---
+
+# Initialize doc-everything for this project (Cursor)
+
+One-time setup so the docs-sync stop hook and the `document-feature-*` rules
+work in this repo. The hook works out of the box with sensible defaults — you
+only need a config file if the defaults don't match this project's layout.
+
+## Steps
+
+1. **Install the stop hook.**
+   - Make sure the hook script is present in the repo and executable — copy
+     `hooks/docs-sync.sh` from doc-everything and run `chmod +x hooks/docs-sync.sh`.
+   - Create `.cursor/hooks.json` pointing at it (path relative to the repo root):
+
+     ```json
+     {
+       "version": 1,
+       "hooks": {
+         "stop": [
+           { "command": "./hooks/docs-sync.sh" }
+         ]
+       }
+     }
+     ```
+
+   - To enable it across **all** your projects instead, put the same `stop` entry
+     in `~/.cursor/hooks.json` with an absolute path to the script.
+
+2. **Inspect the repo layout.** Find where source lives and what extensions are
+   used (e.g. `src/`, `app/`, `lib/`, `packages/*`, or a language-specific root),
+   and where documentation should live.
+
+3. **Decide if the defaults fit.** The hook watches common source roots
+   (`src|app|lib|pkg|internal|cmd|packages`) across many languages, excludes
+   tests/vendored/generated code, and expects docs under `docs/features/`. If
+   that already matches this repo, **skip the config file** — less to maintain.
+
+4. **Only if needed, write `.cursor/doc-everything.json`** (or
+   `.claude/doc-everything.json`) at the repo root with the keys that differ from
+   the defaults:
+
+   ```json
+   {
+     "docsPath": "docs/features/",
+     "srcGlob": "(^|[ /])(src|app)/[^[:space:]]+\\.(ts|tsx)($|[^[:alnum:]])",
+     "srcExclude": "(\\.(test|spec)\\.|/__tests__/|/node_modules/)",
+     "reason": "Source changed but nothing under {DOCS_PATH} did — document the feature."
+   }
+   ```
+
+   - `srcGlob` / `srcExclude` are **extended regexes** matched against
+     `git status --porcelain` lines. Escape backslashes for JSON (`\\.`).
+   - `docsPath` must end with a trailing slash.
+   - `reason` is optional; `{DOCS_PATH}` in it is substituted at runtime.
+   - Any omitted key falls back to the built-in default.
+   - Alternatively, these map to env vars `DOC_EVERYTHING_SRC_GLOB`,
+     `DOC_EVERYTHING_SRC_EXCLUDE`, `DOC_EVERYTHING_DOCS_PATH`, `DOC_EVERYTHING_REASON`.
+
+5. **Scaffold the docs directory and index.** Create the docs path if missing and
+   seed `docs/features/README.md`:
+
+   ```markdown
+   # Features
+
+   Per-feature documentation. Each feature has a `product.md` (user-facing view)
+   and a `technical.md` (engineering view).
+
+   | Feature | What it is | Docs |
+   |---------|------------|------|
+   ```
+
+6. **Confirm the rules are available.** The `document-feature-technical` and
+   `document-feature-product` rules should live under `.cursor/rules/`. After a
+   turn that changes source without touching the docs path, the stop hook submits
+   a follow-up asking you to document the feature.
+
+## Done when
+
+- [ ] `.cursor/hooks.json` (or `~/.cursor/hooks.json`) runs `docs-sync.sh`, and the
+      script is present and executable.
+- [ ] Source and docs paths are correct (defaults confirmed, or a config file
+      written for the ones that differ).
+- [ ] `docs/features/README.md` (or the configured docs path) exists with the
+      index table.
+- [ ] The `document-feature-technical` and `document-feature-product` rules are in
+      `.cursor/rules/` and ready to fill in per feature.
