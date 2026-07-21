@@ -22,7 +22,7 @@ docs/features/<feature>/technical.md     ← document-feature-technical skill
 - `<feature>` is a kebab-case slug — the same slug used by the matching
   `technical.md`.
 - If this project pins the docs directory elsewhere (via
-  `.claude/feature-docs.json` `docsPath`, or the plugin's `FEATURE_DOCS_DOCS_PATH`
+  `.claude/doc-everything.json` `docsPath`, or the plugin's `DOC_EVERYTHING_DOCS_PATH`
   env var), use that path instead of `docs/features/`.
 - One file per feature — **update `product.md` in place** as behavior changes.
 

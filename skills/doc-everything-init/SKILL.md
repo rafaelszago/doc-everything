@@ -1,10 +1,10 @@
 ---
-name: feature-docs-init
-description: Set up the feature-docs plugin for the current project — detect the source layout, scaffold the docs/features/ directory with an index, and (only if the defaults don't fit) write a .claude/feature-docs.json config so the docs-sync Stop hook watches the right paths. Use once per repo when adopting the plugin, or when the docs-sync hook is firing on the wrong files or not firing at all.
+name: doc-everything-init
+description: Set up the doc-everything plugin for the current project — detect the source layout, scaffold the docs/features/ directory with an index, and (only if the defaults don't fit) write a .claude/doc-everything.json config so the docs-sync Stop hook watches the right paths. Use once per repo when adopting the plugin, or when the docs-sync hook is firing on the wrong files or not firing at all.
 user-invocable: true
 ---
 
-# Initialize feature-docs for this project
+# Initialize doc-everything for this project
 
 One-time setup so the docs-sync Stop hook and the `document-feature-*` skills
 work in this repo. The hook works out of the box with sensible defaults — you
@@ -21,7 +21,7 @@ only need a config file if the defaults don't match this project's layout.
    exclude tests/vendored/generated code, and expect docs under `docs/features/`.
    If that already matches this repo, **skip the config file** — less to maintain.
 
-3. **Only if needed, write `.claude/feature-docs.json`** at the repo root with
+3. **Only if needed, write `.claude/doc-everything.json`** at the repo root with
    the keys that differ from the defaults:
 
    ```json
@@ -38,8 +38,8 @@ only need a config file if the defaults don't match this project's layout.
    - `docsPath` must end with a trailing slash.
    - `reason` is optional; `{DOCS_PATH}` in it is substituted at runtime.
    - Any omitted key falls back to the built-in default.
-   - Alternatively, these map to env vars `FEATURE_DOCS_SRC_GLOB`,
-     `FEATURE_DOCS_SRC_EXCLUDE`, `FEATURE_DOCS_DOCS_PATH`, `FEATURE_DOCS_REASON`.
+   - Alternatively, these map to env vars `DOC_EVERYTHING_SRC_GLOB`,
+     `DOC_EVERYTHING_SRC_EXCLUDE`, `DOC_EVERYTHING_DOCS_PATH`, `DOC_EVERYTHING_REASON`.
 
 4. **Scaffold the docs directory and index.** Create the docs path if missing and
    seed `docs/features/README.md`:

@@ -21,7 +21,7 @@ docs/features/README.md                  ← index (product skill owns it)
 - `<feature>` is a kebab-case slug. Match it to how the codebase already names
   the feature (its module/package/directory) so the docs are easy to trace back.
 - If this project pins the docs directory elsewhere (via
-  `.claude/feature-docs.json` `docsPath`, or the plugin's `FEATURE_DOCS_DOCS_PATH`
+  `.claude/doc-everything.json` `docsPath`, or the plugin's `DOC_EVERYTHING_DOCS_PATH`
   env var), use that path instead of `docs/features/`.
 - One file per feature — **update the existing `technical.md` in place**, don't
   spawn `technical-v2.md`. Keep it current with the code, not a changelog.
