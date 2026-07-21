@@ -1,6 +1,6 @@
 {
-  "name": "doc-everything-local",
-  "description": "Local marketplace for the doc-everything plugin — per-feature documentation kept in sync with code via a Stop hook and templating skills.",
+  "name": "doc-everything",
+  "description": "Marketplace for the doc-everything plugin — per-feature documentation kept in sync with code via a Stop hook and templating skills.",
   "owner": {
     "name": "Rafael Zago",
     "email": "rafaelszago@gmail.com"

@@ -40,7 +40,7 @@ claude plugin install doc-everything --scope local     # only your local checkou
 
 Manage it later with `claude plugin update | disable | enable | uninstall
 doc-everything`. If another installed plugin shares the name, use the fully
-qualified id `doc-everything@doc-everything-local`.
+qualified id `doc-everything@doc-everything`.
 
 ## Convention
 
