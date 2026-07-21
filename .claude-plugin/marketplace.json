@@ -1,0 +1,18 @@
+{
+  "name": "feature-docs-local",
+  "description": "Local marketplace for the feature-docs plugin — per-feature documentation kept in sync with code via a Stop hook and templating skills.",
+  "owner": {
+    "name": "Rafael Zago",
+    "email": "rafaelszago@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "feature-docs",
+      "source": "./",
+      "description": "Keep per-feature documentation in sync with code. A Stop hook nudges you to document what you changed; skills give canonical technical.md / product.md templates and maintain the index. Language- and framework-agnostic.",
+      "version": "1.0.0",
+      "category": "workflow",
+      "tags": ["documentation", "docs-sync", "hooks", "skills", "workflow"]
+    }
+  ]
+}

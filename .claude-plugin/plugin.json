@@ -1,0 +1,19 @@
+{
+  "name": "feature-docs",
+  "version": "1.0.0",
+  "description": "Keep per-feature documentation in sync with code. A Stop hook nudges you to document whatever you just changed, and two skills give you canonical templates for the engineering view (technical.md) and the user-facing view (product.md), plus a maintained index. Language- and framework-agnostic; tune the watched source/docs paths per project.",
+  "author": {
+    "name": "Rafael Zago",
+    "email": "rafaelszago@gmail.com"
+  },
+  "license": "MIT",
+  "keywords": [
+    "documentation",
+    "docs",
+    "feature-docs",
+    "docs-sync",
+    "hooks",
+    "skills",
+    "workflow"
+  ]
+}
